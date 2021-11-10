@@ -7,7 +7,7 @@
         class="form-control"
         id="title"
         required
-        [(ngModel)]="tutorial.title"
+        [(ngModel)]="ratePic.title"
         name="title"
       />
     </div>
@@ -18,16 +18,16 @@
         class="form-control"
         id="description"
         required
-        [(ngModel)]="tutorial.description"
+        [(ngModel)]="ratePic.url"
         name="description"
       />
     </div>
 
-    <button (click)="saveTutorial()" class="btn btn-success">Submit</button>
+    <button (click)="savePic()" class="btn btn-success">Submit</button>
   </div>
 
   <div *ngIf="submitted">
     <h4>You submitted successfully!</h4>
-    <button class="btn btn-success" (click)="newTutorial()">Add</button>
+    <button class="btn btn-success" (click)="newPic()">Add</button>
   </div>
 </div>

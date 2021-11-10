@@ -13,12 +13,17 @@ import { AddTutorialComponent } from './components/add-tutorial/add-tutorial.com
 import { TutorialDetailsComponent } from './components/tutorial-details/tutorial-details.component';
 import { TutorialsListComponent } from './components/tutorials-list/tutorials-list.component';
 
+import { GoogleMapsModule } from '@angular/google-maps';
+import { MapComponent } from './components/map/map.component';
+import {InputTextModule} from 'primeng/inputtext';
+
 @NgModule({
   declarations: [
     AppComponent,
     AddTutorialComponent,
     TutorialDetailsComponent,
-    TutorialsListComponent
+    TutorialsListComponent,
+    MapComponent
   ],
   imports: [
     BrowserModule,
@@ -27,6 +32,8 @@ import { TutorialsListComponent } from './components/tutorials-list/tutorials-li
     FormsModule,
     AngularFireModule.initializeApp(environment.firebase),
     AngularFirestoreModule, // for firestore
+    GoogleMapsModule,
+    InputTextModule
   ],
   providers: [],
   bootstrap: [AppComponent]

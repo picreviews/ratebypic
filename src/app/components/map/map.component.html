@@ -1,0 +1,15 @@
+<div #mapSearchFieldContainer>
+    <span   class="p-input-icon-left mt-2 ml-2">
+        <i class="pi pi-search"></i>
+        <input #mapSearchField type="text" pInputText placeholder="Search City" />
+    </span>
+    <br>
+    <span  class="p-input-icon-left mt-2 ml-2">
+        <i class="pi pi-search"></i>
+        <input #businessSearchField type="text" pInputText placeholder="Search Business" />
+    </span>
+</div>
+
+<div class="my-google-map">
+    <google-map [width]="null" [height]="null" [options]="mapOptions"></google-map>
+</div>

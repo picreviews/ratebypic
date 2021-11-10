@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { TutorialService } from 'src/app/services/tutorial.service';
+import { RatePicService } from 'src/app/services/ratepic.service';
 import { map } from 'rxjs/operators';
-import Tutorial from 'src/app/models/tutorial.model';
+import RatePic from 'src/app/models/ratepic.model';
 
 @Component({
   selector: 'app-tutorials-list',
@@ -10,37 +10,37 @@ import Tutorial from 'src/app/models/tutorial.model';
 })
 export class TutorialsListComponent implements OnInit {
 
-  tutorials?: Tutorial[];
-  currentTutorial?: Tutorial;
+  ratePics?: RatePic[];
+  currentPic?: RatePic;
   currentIndex = -1;
   title = '';
 
-  constructor(private tutorialService: TutorialService) { }
+  constructor(private ratePicService: RatePicService) { }
 
   ngOnInit(): void {
-    this.retrieveTutorials();
+    this.retrievePics();
   }
 
   refreshList(): void {
-    this.currentTutorial = undefined;
+    this.currentPic = undefined;
     this.currentIndex = -1;
-    this.retrieveTutorials();
+    this.retrievePics();
   }
 
-  retrieveTutorials(): void {
-    this.tutorialService.getAll().snapshotChanges().pipe(
+  retrievePics(): void {
+    this.ratePicService.getAll().snapshotChanges().pipe(
       map(changes =>
         changes.map(c =>
           ({ id: c.payload.doc.id, ...c.payload.doc.data() })
         )
       )
     ).subscribe(data => {
-      this.tutorials = data;
+      this.ratePics = data;
     });
   }
 
-  setActiveTutorial(tutorial: Tutorial, index: number): void {
-    this.currentTutorial = tutorial;
+  setActivePic(pic: RatePic, index: number): void {
+    this.currentPic = pic;
     this.currentIndex = index;
   }
 

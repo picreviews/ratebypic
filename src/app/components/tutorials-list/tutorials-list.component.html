@@ -4,23 +4,23 @@
     <ul class="list-group">
       <li
         class="list-group-item"
-        *ngFor="let tutorial of tutorials; let i = index"
+        *ngFor="let pic of ratePics; let i = index"
         [class.active]="i == currentIndex"
-        (click)="setActiveTutorial(tutorial, i)"
+        (click)="setActivePic(pic, i)"
       >
-        {{ tutorial.title }}
+        {{ pic.title }}
       </li>
     </ul>
   </div>
   <div class="col-md-6">
-    <div *ngIf="currentTutorial">
+    <div *ngIf="currentPic">
       <app-tutorial-details
         (refreshList)="refreshList()"
-        [tutorial]="currentTutorial"
+        [tutorial]="currentPic"
       ></app-tutorial-details>
     </div>
 
-    <div *ngIf="!currentTutorial">
+    <div *ngIf="!currentPic">
       <br />
       <p>Please click on a Record...</p>
     </div>

@@ -1,11 +1,12 @@
 export const environment = {
   production: false,
   firebase: {
-    apiKey: "AIzaSyCIM79p5BYaidpPLV-51pUYn8iRGIQpcWw",
-    authDomain: "seb-revenue-map.firebaseapp.com",
-    projectId: "seb-revenue-map",
-    storageBucket: "seb-revenue-map.appspot.com",
-    messagingSenderId: "572948188720",
-    appId: "1:572948188720:web:4294650e92ec1589b8a7f5"
+    apiKey: "AIzaSyAAzYwPfSktIx0vxWkChx0AJIANfntfMd0",
+    authDomain: "ratebypic.firebaseapp.com",
+    projectId: "ratebypic",
+    storageBucket: "ratebypic.appspot.com",
+    messagingSenderId: "966029061881",
+    appId: "1:966029061881:web:4795cd429de4bae8e13c28",
+    measurementId: "G-2KXVQ298V9"
   }
 };
