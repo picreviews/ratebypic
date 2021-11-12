@@ -1,13 +1,19 @@
-<div #mapSearchFieldContainer>
-    <span   class="p-input-icon-left mt-2 ml-2">
-        <i class="pi pi-search"></i>
-        <input #mapSearchField type="text" pInputText placeholder="Search City" />
-    </span>
-    <br>
-    <span  class="p-input-icon-left mt-2 ml-2">
-        <i class="pi pi-search"></i>
-        <input #businessSearchField type="text" pInputText placeholder="Search Business" />
-    </span>
+<p-fileUpload mode="basic" [auto]="true" chooseLabel="Browse" name="myfile[]" accept="image/*" [customUpload]="true"
+    (uploadHandler)="onImageUpload($event)"></p-fileUpload>
+<div style="display: none;">
+    <div #mapSearchFieldContainer>
+        <span class="p-input-icon-left mt-2 ml-2">
+            <i class="pi pi-search"></i>
+            <input #mapSearchField type="text" pInputText placeholder="Search City" />
+        </span>
+        <br>
+        <span class="p-input-icon-left mt-2 ml-2">
+            <i class="pi pi-search"></i>
+            <input #businessSearchField type="text" pInputText placeholder="Search Business" />
+        </span>
+        <br>
+        <p-image src="{{downloadURL | async}}" alt="Image" width="250" [preview]="true"></p-image>
+    </div>
 </div>
 
 <div class="my-google-map">

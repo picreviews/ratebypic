@@ -1,16 +1,19 @@
 import { Component, OnInit, ViewChild, ViewEncapsulation, AfterViewInit, ElementRef, ChangeDetectionStrategy } from '@angular/core';
 import { GoogleMap } from '@angular/google-maps';
+import { AngularFireStorage, AngularFireUploadTask } from '@angular/fire/storage';
+import { Observable } from 'rxjs';
+import { finalize, tap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-map',
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css'],
   encapsulation: ViewEncapsulation.None,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  //changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MapComponent implements OnInit, AfterViewInit {
 
-  constructor() { }
+  constructor(private afStorage: AngularFireStorage) { }
 
   @ViewChild('mapSearchField') searchField!: ElementRef;
   @ViewChild('businessSearchField') businessSearchField!: ElementRef;
@@ -31,12 +34,16 @@ export class MapComponent implements OnInit, AfterViewInit {
   autoCompleteBusiness!: google.maps.places.Autocomplete;
   markers: google.maps.Marker[] = [];
 
-  ngOnInit(): void {
+  task!: AngularFireUploadTask;
 
+  percentage!: Observable<number>;
+  snapshot!: Observable<any>;
+  downloadURL!: Observable<string>;
+
+  ngOnInit(): void {
   }
 
   ngAfterViewInit() {
-
     this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(
       this.mapSearchFieldContainer.nativeElement,
     );
@@ -175,6 +182,29 @@ export class MapComponent implements OnInit, AfterViewInit {
 
 
 
+  }
+
+  onImageUpload(event: any) {
+    console.log('the upload is begin');
+    // The storage path
+    const path = `pics/${Date.now()}_${event.files[0].name}`;
+
+    // Reference to storage bucket
+    const ref = this.afStorage.ref(path);
+
+    // The main task
+    this.task = this.afStorage.upload(path, event.files[0]);
+    event.files[0]=null;
+    // Progress monitoring
+    //this.percentage = this.task.percentageChanges();
+
+    this.task.snapshotChanges().pipe(
+      finalize(() => {
+        console.log('file uploaded');
+        this.downloadURL = ref.getDownloadURL();
+      })
+    ).subscribe()
+    
   }
 
 }

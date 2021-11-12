@@ -16,6 +16,9 @@ import { TutorialsListComponent } from './components/tutorials-list/tutorials-li
 import { GoogleMapsModule } from '@angular/google-maps';
 import { MapComponent } from './components/map/map.component';
 import {InputTextModule} from 'primeng/inputtext';
+import {FileUploadModule} from 'primeng/fileupload';
+import {HttpClientModule} from '@angular/common/http';
+import {ImageModule} from 'primeng/image';
 
 @NgModule({
   declarations: [
@@ -33,7 +36,10 @@ import {InputTextModule} from 'primeng/inputtext';
     AngularFireModule.initializeApp(environment.firebase),
     AngularFirestoreModule, // for firestore
     GoogleMapsModule,
-    InputTextModule
+    InputTextModule,
+    FileUploadModule,
+    HttpClientModule,
+    ImageModule
   ],
   providers: [],
   bootstrap: [AppComponent]
