@@ -19,6 +19,7 @@ import {InputTextModule} from 'primeng/inputtext';
 import {FileUploadModule} from 'primeng/fileupload';
 import {HttpClientModule} from '@angular/common/http';
 import {ImageModule} from 'primeng/image';
+import {DialogModule} from 'primeng/dialog';
 
 @NgModule({
   declarations: [
@@ -39,7 +40,8 @@ import {ImageModule} from 'primeng/image';
     InputTextModule,
     FileUploadModule,
     HttpClientModule,
-    ImageModule
+    ImageModule,
+    DialogModule
   ],
   providers: [],
   bootstrap: [AppComponent]

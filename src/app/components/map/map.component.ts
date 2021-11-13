@@ -32,13 +32,14 @@ export class MapComponent implements OnInit, AfterViewInit {
     new google.maps.LatLng(-29.5352, 154.6874));
 
   autoCompleteBusiness!: google.maps.places.Autocomplete;
-  markers: google.maps.Marker[] = [];
+  markers: any[] = [];
 
   task!: AngularFireUploadTask;
 
   percentage!: Observable<number>;
   snapshot!: Observable<any>;
   downloadURL!: Observable<string>;
+  displayUpload: boolean = false;
 
   ngOnInit(): void {
   }
@@ -50,6 +51,13 @@ export class MapComponent implements OnInit, AfterViewInit {
 
     this.initCitySearch();
     this.initBusinessSearch();
+
+    this.markers.push({
+      position:{
+        lat: this.mapOptions.center?.lat,
+        lng: this.mapOptions.center?.lng
+      }
+    });
 
   }
 
@@ -68,7 +76,7 @@ export class MapComponent implements OnInit, AfterViewInit {
 
     autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace();
-
+      this.markers = [];
       if (!place.geometry || !place.geometry.location) {
         // User entered the name of a Place that was not suggested and
         // pressed the Enter key, or the Place Details request failed.
@@ -77,13 +85,12 @@ export class MapComponent implements OnInit, AfterViewInit {
       }
 
       // If the place has a geometry, then present it on a map.
-      if (place.geometry.viewport) {
+      /* if (place.geometry.viewport) {
         this.map.fitBounds(place.geometry.viewport);
-      } else {
+      } else { */
         this.map.googleMap?.setCenter(place.geometry.location);
-        this.map.googleMap?.setZoom(17);
-      }
-      console.log(place.formatted_address, place.name);
+        this.map.googleMap?.setZoom(9);
+      //}
 
       this.autoCompleteBusiness.setBounds(this.map.getBounds() || this.worldBounds);
 
@@ -111,9 +118,6 @@ export class MapComponent implements OnInit, AfterViewInit {
     this.autoCompleteBusiness.addListener("place_changed", () => {
       const place = this.autoCompleteBusiness.getPlace();
 
-      this.markers.forEach((marker) => {
-        marker.setMap(null);
-      });
       this.markers = [];
 
       if (!place.geometry || !place.geometry.location) {
@@ -121,6 +125,7 @@ export class MapComponent implements OnInit, AfterViewInit {
         return;
       }
 
+      this.displayUpload = true;
       // If the place has a geometry, then present it on a map.
       if (place.geometry.viewport) {
         this.map.fitBounds(place.geometry.viewport);
@@ -147,26 +152,22 @@ export class MapComponent implements OnInit, AfterViewInit {
       const bounds = new google.maps.LatLngBounds();
       if (status === google.maps.places.PlacesServiceStatus.OK) {
         (results || []).forEach(place => {
-          console.log(place);
+          //console.log(place);
 
-          const icon = {
-            url: place.icon as string,
-            size: new google.maps.Size(71, 71),
-            origin: new google.maps.Point(0, 0),
-            anchor: new google.maps.Point(17, 34),
-            scaledSize: new google.maps.Size(25, 25),
-          };
+          
+          /* that.markers.push({
+            position:{
+              lat: place.geometry?.location?.lat,
+              lng: place.geometry?.location?.lng
+            }
+          }); */
 
-          // Create a marker for each place.
-
-          that.markers.push(
-            new google.maps.Marker({
-              map,
-              icon,
-              title: place.name,
-              position: place.geometry?.location,
-            })
-          );
+           that.markers.push({
+            position:{
+              lat: that.mapOptions.center?.lat,
+              lng: that.mapOptions.center?.lng
+            }
+          });
 
           if (place.geometry?.viewport) {
             // Only geocodes have viewport.
@@ -177,7 +178,7 @@ export class MapComponent implements OnInit, AfterViewInit {
 
         });
       }
-      map?.fitBounds(bounds);
+      //map?.fitBounds(bounds);
     });
 
 
@@ -194,7 +195,7 @@ export class MapComponent implements OnInit, AfterViewInit {
 
     // The main task
     this.task = this.afStorage.upload(path, event.files[0]);
-    event.files[0]=null;
+    event.files[0] = null;
     // Progress monitoring
     //this.percentage = this.task.percentageChanges();
 
@@ -204,7 +205,11 @@ export class MapComponent implements OnInit, AfterViewInit {
         this.downloadURL = ref.getDownloadURL();
       })
     ).subscribe()
-    
+
+  }
+
+  markerClicked(markerElem: any) {
+
   }
 
 }
