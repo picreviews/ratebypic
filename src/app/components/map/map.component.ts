@@ -1,8 +1,12 @@
-import { Component, OnInit, ViewChild, ViewEncapsulation, AfterViewInit, ElementRef, ChangeDetectionStrategy } from '@angular/core';
-import { GoogleMap } from '@angular/google-maps';
+import { Component, OnInit, ViewChild, ViewEncapsulation, AfterViewInit, ElementRef, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { GoogleMap, MapMarker } from '@angular/google-maps';
 import { AngularFireStorage, AngularFireUploadTask } from '@angular/fire/storage';
 import { Observable } from 'rxjs';
 import { finalize, tap } from 'rxjs/operators';
+interface PlaceMarker {
+  place: google.maps.places.PlaceResult;
+  marker: MapMarker;
+}
 
 @Component({
   selector: 'app-map',
@@ -13,7 +17,7 @@ import { finalize, tap } from 'rxjs/operators';
 })
 export class MapComponent implements OnInit, AfterViewInit {
 
-  constructor(private afStorage: AngularFireStorage) { }
+  constructor(private afStorage: AngularFireStorage, private ref: ChangeDetectorRef) { }
 
   @ViewChild('mapSearchField') searchField!: ElementRef;
   @ViewChild('businessSearchField') businessSearchField!: ElementRef;
@@ -32,7 +36,8 @@ export class MapComponent implements OnInit, AfterViewInit {
     new google.maps.LatLng(-29.5352, 154.6874));
 
   autoCompleteBusiness!: google.maps.places.Autocomplete;
-  markers: any[] = [];
+  placeMarkers: PlaceMarker[] = [];
+  selectedPlace!: google.maps.places.PlaceResult;
 
   task!: AngularFireUploadTask;
 
@@ -50,14 +55,6 @@ export class MapComponent implements OnInit, AfterViewInit {
     );
 
     this.initCitySearch();
-    this.initBusinessSearch();
-
-    this.markers.push({
-      position:{
-        lat: this.mapOptions.center?.lat,
-        lng: this.mapOptions.center?.lng
-      }
-    });
 
   }
 
@@ -76,21 +73,21 @@ export class MapComponent implements OnInit, AfterViewInit {
 
     autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace();
-      this.markers = [];
       if (!place.geometry || !place.geometry.location) {
         // User entered the name of a Place that was not suggested and
         // pressed the Enter key, or the Place Details request failed.
-        window.alert("No details available for input: '" + place.name + "'");
+        //window.alert("No details available for input: '" + place.name + "'");
         return;
       }
-
-      // If the place has a geometry, then present it on a map.
-      /* if (place.geometry.viewport) {
+      this.businessSearchField.nativeElement.value="";
+      this.placeMarkers=[];
+      //If the place has a geometry, then present it on a map.
+      if (place.geometry.viewport) {
         this.map.fitBounds(place.geometry.viewport);
-      } else { */
+      } else { 
         this.map.googleMap?.setCenter(place.geometry.location);
-        this.map.googleMap?.setZoom(9);
-      //}
+        this.map.googleMap?.setZoom(14);
+      }
 
       this.autoCompleteBusiness.setBounds(this.map.getBounds() || this.worldBounds);
 
@@ -102,50 +99,15 @@ export class MapComponent implements OnInit, AfterViewInit {
 
 
 
-  initBusinessSearch() {
-
-    const options: google.maps.places.AutocompleteOptions = {
-      bounds: this.worldBounds,
-      fields: ["address_components", "geometry", "name", "icon"],
-      strictBounds: false,
-      types: ["establishment"],
-    };
-
-    this.autoCompleteBusiness = new google.maps.places.Autocomplete(
-      this.businessSearchField.nativeElement, options
-    );
-
-    this.autoCompleteBusiness.addListener("place_changed", () => {
-      const place = this.autoCompleteBusiness.getPlace();
-
-      this.markers = [];
-
-      if (!place.geometry || !place.geometry.location) {
-        this.placeSearch();
-        return;
-      }
-
-      this.displayUpload = true;
-      // If the place has a geometry, then present it on a map.
-      if (place.geometry.viewport) {
-        this.map.fitBounds(place.geometry.viewport);
-      } else {
-        this.map.googleMap?.setCenter(place.geometry.location);
-        this.map.googleMap?.setZoom(17);
-      }
-      console.log(place.formatted_address, place.name);
-    });
-
-  }
-
   placeSearch() {
 
-    const service = new google.maps.places.PlacesService(this.map.googleMap || new google.maps.Map(new Element));
+    const service = new google.maps.places.PlacesService(this.map.googleMap as google.maps.Map);
 
     const request: google.maps.places.TextSearchRequest = {
       bounds: this.map.getBounds() || this.worldBounds,
       query: this.businessSearchField.nativeElement.value
     };
+    this.placeMarkers=[];
     let that = this;
     let map = this.map.googleMap;
     service.textSearch(request, function (results, status) {
@@ -153,21 +115,22 @@ export class MapComponent implements OnInit, AfterViewInit {
       if (status === google.maps.places.PlacesServiceStatus.OK) {
         (results || []).forEach(place => {
           //console.log(place);
-
-          
-          /* that.markers.push({
-            position:{
-              lat: place.geometry?.location?.lat,
-              lng: place.geometry?.location?.lng
-            }
-          }); */
-
-           that.markers.push({
-            position:{
-              lat: that.mapOptions.center?.lat,
-              lng: that.mapOptions.center?.lng
-            }
-          });
+          let newMarker: MapMarker = {
+            position: place.geometry?.location,
+            options: {
+              icon: {
+                url: place.icon as string,
+                size: new google.maps.Size(71, 71),
+                origin: new google.maps.Point(0, 0),
+                anchor: new google.maps.Point(17, 34),
+                scaledSize: new google.maps.Size(25, 25),
+              }
+            },
+            label: place.name,
+            title:place.name
+          } as MapMarker;
+          let newPlaceMarker: PlaceMarker={place:place, marker:newMarker};
+          that.placeMarkers.push(newPlaceMarker);
 
           if (place.geometry?.viewport) {
             // Only geocodes have viewport.
@@ -177,12 +140,10 @@ export class MapComponent implements OnInit, AfterViewInit {
           }
 
         });
+        that.ref.detectChanges();
       }
-      //map?.fitBounds(bounds);
+      map?.fitBounds(bounds);
     });
-
-
-
   }
 
   onImageUpload(event: any) {
@@ -208,8 +169,10 @@ export class MapComponent implements OnInit, AfterViewInit {
 
   }
 
-  markerClicked(markerElem: any) {
-
+  markerClicked(placeMarker: PlaceMarker) {
+    console.log(placeMarker.place);
+    this.selectedPlace=placeMarker.place;
+    this.displayUpload = true;
   }
 
 }

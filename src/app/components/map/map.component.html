@@ -1,3 +1,11 @@
+<div class="my-google-map">
+    <google-map [width]="null" [height]="null" [options]="mapOptions">
+        <map-marker *ngFor="let pm of placeMarkers" [position]="pm.marker.position" [options]="pm.marker.options"
+            [label]="pm.marker.label" [title]="pm.marker.title" (mapClick)="markerClicked(pm)">
+
+        </map-marker>
+    </google-map>
+</div>
 <div style="display: none;">
     <div #mapSearchFieldContainer>
         <span class="p-input-icon-left mt-2 ml-2">
@@ -5,35 +13,28 @@
             <input #mapSearchField type="text" pInputText placeholder="Search City" />
         </span>
         <br>
-        <span class="p-input-icon-left mt-2 ml-2">
-            <i class="pi pi-search"></i>
-            <input #businessSearchField type="text" pInputText placeholder="Search Business" />
-        </span>
+        <form (ngSubmit)="placeSearch()">
+            <span class="p-input-icon-left mt-2 ml-2">
+                <i class="pi pi-search"></i>
+                <input #businessSearchField type="text" pInputText placeholder="Search Business" />
+
+            </span>
+        </form>
         <br>
-        <p-image src="{{downloadURL | async}}" alt="Image" width="250" [preview]="true"></p-image>
     </div>
 </div>
+<p-dialog *ngIf="selectedPlace" [(visible)]="displayUpload" [modal]="true" [dismissableMask]="true"
+    [style]="{width: '50vw'}" [draggable]="false" [resizable]="false">
+    <ng-template pTemplate="header">
+        <h5> Upload a photo : {{selectedPlace.name}} </h5>
+    </ng-template>
 
-<div class="my-google-map">
-    <google-map [width]="null" [height]="null" [options]="mapOptions">
-        <map-marker *ngFor="let marker of markers" [position]="marker.position" [options]="marker.options"
-            [label]="marker.label" [title]="marker.title" (mapClick)="markerClicked(marker)">
-
-        </map-marker>
-    </google-map>
-</div>
-<p-button icon="pi pi-check" (click)="displayUpload=true" label="Ok" styleClass="p-button-text"></p-button>
-
-<p-dialog header="Upload a photo" [(visible)]="displayUpload" [modal]="true" [style]="{width: '50vw'}"
-    [draggable]="false" [resizable]="false">
-    <p class="p-m-0">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore
-        et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco
-        laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
-        cillum dolore eu fugiat nulla pariatur.
-        Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-    </p>
     <p-fileUpload mode="basic" [auto]="true" chooseLabel="Browse" name="myfile[]" accept="image/*" [customUpload]="true"
         (uploadHandler)="onImageUpload($event)"></p-fileUpload>
+
+    <p-image *ngIf="downloadURL" src="{{downloadURL | async}}" alt="Image" width="250" [preview]="true"></p-image>
+
+
     <ng-template pTemplate="footer">
         <p-button icon="pi pi-check" (click)="displayUpload=false" label="Ok" styleClass="p-button-text"></p-button>
     </ng-template>
