@@ -29,4 +29,5 @@ export class AddTutorialComponent implements OnInit {
     this.ratePic = new RatePic();
   }
 
+
 }
