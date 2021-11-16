@@ -20,23 +20,44 @@
 
             </span>
         </form>
-        <br>
+
+        <div class="photos-container mt-2 ml-2 p-2">
+            <p-image *ngFor="let pic of ratePics" src="{{pic.url}}" styleClass="image-list-item mb-2" alt="{{pic.placeName}}"
+                width="200" [preview]="true"></p-image>
+                <div *ngIf="ratePics.length==0">
+                   <h6 class="ml-2 mt-5">No Images Found!</h6> 
+                </div>
+        </div>
+
     </div>
 </div>
-<p-dialog *ngIf="selectedPlace" [(visible)]="displayUpload" [modal]="true" [dismissableMask]="true"
-    [style]="{width: '50vw'}" [draggable]="false" [resizable]="false">
+<p-dialog *ngIf="selectedPlace" [(visible)]="displayUpload" [modal]="true"
+    [breakpoints]="{'960px': '75vw', '640px': '95vw'}" [style]="{width: '50vw'}" [draggable]="false"
+    [resizable]="false">
     <ng-template pTemplate="header">
         <h5> Upload a photo : {{selectedPlace.name}} </h5>
     </ng-template>
 
-    <p-fileUpload mode="basic" [auto]="true" chooseLabel="Browse" name="myfile[]" accept="image/*" [customUpload]="true"
-        (uploadHandler)="onImageUpload($event)"></p-fileUpload>
-
-    <p-image *ngIf="downloadURL" src="{{downloadURL | async}}" alt="Image" width="250" [preview]="true"></p-image>
-
-
-    <ng-template pTemplate="footer">
-        <p-button icon="pi pi-check" (click)="displayUpload=false" label="Ok" styleClass="p-button-text"></p-button>
+    <div *ngIf="isLoogedIn; else notLoggedIn">
+        <div *ngIf="isUploadCompleted==false">
+            <ngx-dropzone [multiple]="false" accept="image/*" (change)="onImageUpload($event)"
+                [disabled]="downloadPercentageFixed!=0">
+                <ngx-dropzone-label>Drop here or click to upload!</ngx-dropzone-label>
+                <ngx-dropzone-image-preview ngProjectAs="ngx-dropzone-preview" *ngFor="let f of files" [file]="f">
+                    <ngx-dropzone-label>{{ f.name }} ({{ f.type }})</ngx-dropzone-label>
+                </ngx-dropzone-image-preview>
+            </ngx-dropzone>
+            <p-progressBar [value]="downloadPercentageFixed"></p-progressBar>
+        </div>
+        <div *ngIf="isUploadCompleted==true" style="margin: 0 auto;">
+            <h6>Upload Completed <i class="pi pi-check"></i> </h6>
+        </div>
+    </div>
+    <ng-template #notLoggedIn>
+        Please log in to upload a photo.
     </ng-template>
-</p-dialog>
 
+
+
+
+</p-dialog>

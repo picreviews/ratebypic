@@ -1,6 +1,11 @@
+import { AngularFireAuth } from '@angular/fire/auth';
 export default class RatePic {
   id?: string;
-  title?: string;
   url?: string;
-  user?: any;
+  userId?: string;
+  placeName?: string;
+  placeId?: string;
+  lat?: number;
+  lng?: number;
+  createdDateTime?: Date;
 }
