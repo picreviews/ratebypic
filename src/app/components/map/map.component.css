@@ -3,6 +3,7 @@
     height: calc(100vh - 56px);
 }
 
+
 .marker-labels {
     background-color: rgba(255, 255, 255, 0.4);
     padding: 3px;
@@ -11,13 +12,31 @@
 }
 
 .photos-container {
-    width: 223px;
+    width: 225px;
     background-color: rgba(255, 255, 255, 0.4);
     height: calc(100vh - 170px);
     overflow: auto;
     overflow-x: hidden;
 }
 
+.photos-container div {
+    cursor: pointer;
+}
+
+.pic-img {
+    width: 200px;
+}
+
 .image-list-item .p-image-preview {
     max-width: 100vw;
+
+}
+
+@media only screen and (max-width: 768px) {
+    .photos-container {
+        width: 120px;
+    }
+    .pic-img {
+        width: 105px;
+    }
 }

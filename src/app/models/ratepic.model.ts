@@ -5,7 +5,9 @@ export default class RatePic {
   userId?: string;
   placeName?: string;
   placeId?: string;
+  placeIcon?: string;
   lat?: number;
   lng?: number;
   createdDateTime?: Date;
+  geoHash?: string;
 }

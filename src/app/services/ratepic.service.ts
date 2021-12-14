@@ -1,7 +1,11 @@
 import { Injectable } from '@angular/core';
-import { AngularFirestore, AngularFirestoreCollection } from '@angular/fire/firestore';
+import { AngularFirestore, AngularFirestoreCollection, DocumentChangeAction } from '@angular/fire/firestore';
 import RatePic from '../models/ratepic.model';
 import { AngularFireAuth } from '@angular/fire/auth';
+import * as geofire from "geofire-common";
+import * as turf from "@turf/turf";
+import { forkJoin, Observable, zip } from 'rxjs';
+import { combineLatest } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -19,17 +23,62 @@ export class RatePicService {
     });
   }
 
-  getAll(): AngularFirestoreCollection<RatePic> {
-    return this.ratePicRef;
+  getAll(placeIds: string[] = []): Observable<RatePic[][]> {
+
+    const observables: Observable<RatePic[]>[] = [];
+
+    if (placeIds.length > 0) {
+      while (placeIds.length) {
+        // firestore limits batches to 10
+        const batch = placeIds.splice(0, 10);
+        const collection: AngularFirestoreCollection<RatePic> = this.db.collection(this.dbPath, ref => ref
+          .where('placeId', 'in', batch)
+          .orderBy('createdDateTime', 'desc')
+        );
+        observables.push(collection.valueChanges())
+      }
+    }
+    else {
+      const collection: AngularFirestoreCollection<RatePic> = this.db.collection(this.dbPath, ref => ref
+        .orderBy('createdDateTime', 'desc')
+      );
+      observables.push(collection.valueChanges())
+    }
+    return combineLatest(observables);
+  }
+
+  getAllByBounds(swLngLat: number[], neLngLat: number[]): Observable<RatePic[][]> {
+    const from = turf.point(swLngLat);
+    const to = turf.point(neLngLat);
+    const distanceKm = turf.distance(from, to);
+    const features = turf.points([swLngLat, neLngLat]);
+    const center = turf.center(features);
+    const radiusInM = distanceKm / 2 * 1000;
+    const bounds = geofire.geohashQueryBounds([center.geometry.coordinates[1], center.geometry.coordinates[0]], radiusInM);
+
+    const observables: Observable<RatePic[]>[] = [];
+    for (const b of bounds) {
+      const collection: AngularFirestoreCollection<RatePic> = this.db.collection(this.dbPath, ref => ref
+        .orderBy('geoHash')
+        .orderBy('createdDateTime', 'desc')
+        .startAt(b[0])
+        .endAt(b[1])
+      );
+      observables.push(collection.valueChanges())
+    }
+
+    return combineLatest(observables);
   }
 
   create(pic: RatePic): any {
     pic.userId = this.userId;
-    pic.createdDateTime= new Date();
+    pic.createdDateTime = new Date();
+    pic.geoHash = geofire.geohashForLocation([pic.lat as number, pic.lng as number]);
     return this.ratePicRef.add({ ...pic });
   }
 
-  update(id: string, data: any): Promise<void> {
+  update(id: string, data: RatePic): Promise<void> {
+    data.geoHash = geofire.geohashForLocation([data.lat as number, data.lng as number]);
     return this.ratePicRef.doc(id).update(data);
   }
 

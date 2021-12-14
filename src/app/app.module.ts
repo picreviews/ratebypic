@@ -17,9 +17,11 @@ import {FileUploadModule} from 'primeng/fileupload';
 import {HttpClientModule} from '@angular/common/http';
 import {ImageModule} from 'primeng/image';
 import {DialogModule} from 'primeng/dialog';
+import {ButtonModule} from 'primeng/button';
 import {firebase, firebaseui, FirebaseUIModule} from 'firebaseui-angular';
 import {AngularFireAuthModule} from '@angular/fire/auth';
 import { NgxDropzoneModule } from 'ngx-dropzone';
+import {GalleriaModule} from 'primeng/galleria';
 
 
 const firebaseUiAuthConfig: firebaseui.auth.Config = {
@@ -55,7 +57,9 @@ const firebaseUiAuthConfig: firebaseui.auth.Config = {
     DialogModule,
     AngularFireAuthModule,
     FirebaseUIModule.forRoot(firebaseUiAuthConfig),
-    NgxDropzoneModule
+    NgxDropzoneModule,
+    GalleriaModule,
+    ButtonModule
   ],
   providers: [],
   bootstrap: [AppComponent]
