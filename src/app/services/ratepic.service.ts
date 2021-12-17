@@ -15,9 +15,11 @@ export class RatePicService {
   userId: string = '';
 
   ratePicRef: AngularFirestoreCollection<RatePic>;
+  lastDocInResponseForPaging: RatePic;
 
   constructor(private db: AngularFirestore, private afAuth: AngularFireAuth) {
-    this.ratePicRef = db.collection(this.dbPath, ref => ref.orderBy('createdDateTime', 'desc'));
+    this.ratePicRef = db.collection(this.dbPath);
+    this.lastDocInResponseForPaging = {};
     this.afAuth.authState.subscribe(user => {
       if (user) this.userId = user.uid;
     });
@@ -39,10 +41,26 @@ export class RatePicService {
       }
     }
     else {
-      const collection: AngularFirestoreCollection<RatePic> = this.db.collection(this.dbPath, ref => ref
-        .orderBy('createdDateTime', 'desc')
-      );
-      observables.push(collection.valueChanges())
+      if (this.lastDocInResponseForPaging.id) {
+        //next page
+        console.log('next page', this.lastDocInResponseForPaging);
+        const collection: AngularFirestoreCollection<RatePic> = this.db.collection(this.dbPath, ref => ref
+          .limit(3)
+          .orderBy('createdDateTime', 'desc')
+          .orderBy('id') //for paging accuracy
+          .startAfter(this.lastDocInResponseForPaging.createdDateTime, this.lastDocInResponseForPaging.id)
+        );
+        observables.push(collection.valueChanges())
+      }
+      else {
+        //first page
+        const collection: AngularFirestoreCollection<RatePic> = this.db.collection(this.dbPath, ref => ref
+          .limit(3)
+          .orderBy('createdDateTime', 'desc')
+          .orderBy('id') //for paging accuracy
+        );
+        observables.push(collection.valueChanges())
+      }
     }
     return combineLatest(observables);
   }
@@ -58,6 +76,7 @@ export class RatePicService {
 
     const observables: Observable<RatePic[]>[] = [];
     for (const b of bounds) {
+      console.log(b);
       const collection: AngularFirestoreCollection<RatePic> = this.db.collection(this.dbPath, ref => ref
         .orderBy('geoHash')
         .orderBy('createdDateTime', 'desc')

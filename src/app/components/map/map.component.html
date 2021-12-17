@@ -45,6 +45,10 @@
                 </p-image>
             </div>
 
+            <div class="flex justify-content-center">
+                <button pButton pRipple type="button" (click)="retrievePics()" label="Load More" class="p-button-outlined p-button-secondary"></button>
+            </div>
+            
             <div *ngIf="showDataNotFound">
                 <h6 class="ml-2 mt-5">No Images Found!</h6>
             </div>

@@ -114,17 +114,20 @@ export class MapComponent implements OnInit, AfterViewInit {
       placeIds = this.placeMarkers.map(pm => pm.place.place_id as string);
     }
 
-    this.ratePics=[];
+
+    if (placeIds.length>0 || !this.ratePicService.lastDocInResponseForPaging.id) {
+      this.ratePics = [];
+    }
     this.ratePicService.getAll(placeIds).subscribe((res) => {
-      res.forEach(el => {
-        el.forEach(pic => {
-          if (this.ratePics.map(m => m.id).includes(pic.id)) {
-            return;
-          }
-          this.ratePics.push(pic);
-        });
+      res.reduce((acc, val) => acc.concat(val)).forEach(pic => {
+        if (this.ratePics.map(m => m.id).includes(pic.id)) {
+          return;
+        }
+        this.ratePics.push(pic);
+        this.ratePicService.lastDocInResponseForPaging = pic;
       });
       this.showDataNotFound = this.ratePics.length == 0;
+
     });
   }
 
@@ -152,7 +155,7 @@ export class MapComponent implements OnInit, AfterViewInit {
       this.businessSearchField.nativeElement.value = "";
       this.placeMarkers = [];
       this.ratePics = [];
-      this.selectedPlace={};
+      this.selectedPlace = {};
       //If the place has a geometry, then present it on a map.
       if (place.geometry.viewport) {
         this.map.fitBounds(place.geometry.viewport);
@@ -168,39 +171,11 @@ export class MapComponent implements OnInit, AfterViewInit {
         let picsObs = this.ratePicService.getAllByBounds([sw.lng(), sw.lat()], [ne.lng(), ne.lat()]);
 
         picsObs.subscribe((res) => {
-          let pics: RatePic[] = [];
-          res.forEach(el => {
-            el.forEach(pic => {
-              if (this.ratePics.map(m => m.id).includes(pic.id)) {
-                return;
-              }
-              this.ratePics.push(pic);
-              let newMarker: MapMarker = {
-                position: new google.maps.LatLng(pic.lat as number, pic.lng),
-                options: {
-                  icon: {
-                    url: pic.placeIcon || 'https://maps.gstatic.com/mapfiles/place_api/icons/v1/png_71/restaurant-71.png',
-                    size: new google.maps.Size(71, 71),
-                    origin: new google.maps.Point(0, 0),
-                    anchor: new google.maps.Point(17, 34),
-                    scaledSize: new google.maps.Size(25, 25),
-                    labelOrigin: new google.maps.Point(17, 35),
-
-                  },
-                },
-                label: { text: pic.placeName, className: 'marker-labels' } as google.maps.MarkerLabel,
-                title: pic.placeName,
-              } as MapMarker;
-              let place: google.maps.places.PlaceResult = {};
-              place.icon = pic.placeIcon;
-              place.name = pic.placeName;
-              place.place_id = pic.placeId;
-              place.geometry = {};
-              place.geometry.location = newMarker.position as google.maps.LatLng;
-              let newPlaceMarker: PlaceMarker = { place: place, marker: newMarker };
-              this.placeMarkers.push(newPlaceMarker);
-
-            });
+          res.reduce((acc, val) => acc.concat(val)).forEach(pic => {
+            if (this.ratePics.map(m => m.id).includes(pic.id)) {
+              return;
+            }
+            this.ratePics.push(pic);
           });
 
         });
@@ -223,10 +198,10 @@ export class MapComponent implements OnInit, AfterViewInit {
       this.map.googleMap?.setZoom(11);
     }
     console.log('bounds', this.map.googleMap?.getBounds());
-    const request: google.maps.places.PlaceSearchRequest  = {
+    const request: google.maps.places.PlaceSearchRequest = {
       bounds: this.map.googleMap?.getBounds() || this.worldBounds,
       name: this.businessSearchField.nativeElement.value,
-    
+
     };
 
 
