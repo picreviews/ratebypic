@@ -29,7 +29,6 @@ export class MapComponent implements OnInit, AfterViewInit {
   }
 
   @ViewChild('mapSearchField') searchField!: ElementRef;
-  @ViewChild('businessSearchField') businessSearchField!: ElementRef;
   @ViewChild('mapSearchFieldContainer') mapSearchFieldContainer!: ElementRef;
   @ViewChild('picsListContainer') picsListContainer!: ElementRef;
   @ViewChild(GoogleMap) map!: GoogleMap;
@@ -58,6 +57,9 @@ export class MapComponent implements OnInit, AfterViewInit {
 
   placeMarkers: PlaceMarker[] = [];
   selectedPlace: google.maps.places.PlaceResult = {};
+  selectedCity: google.maps.places.PlaceResult | null = null;
+  searchKeyword: string = "";
+  searchInput: string = "";
 
   task!: AngularFireUploadTask;
 
@@ -70,6 +72,8 @@ export class MapComponent implements OnInit, AfterViewInit {
   isUploadCompleted: boolean = false;
   ratePics: RatePic[] = [];
   showDataNotFound: boolean = false;
+  lastDocToGetNextPage: RatePic | null = null;
+  displayLoadMoreButton: boolean = false;
 
   imgGalleryResponsiveOptions: any[] = [
     {
@@ -96,17 +100,33 @@ export class MapComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.map.controls[google.maps.ControlPosition.LEFT_TOP].push(
-      this.mapSearchFieldContainer.nativeElement,
+      this.mapSearchFieldContainer.nativeElement
     );
     this.map.controls[google.maps.ControlPosition.LEFT_TOP].push(
-      this.picsListContainer.nativeElement,
+      this.picsListContainer.nativeElement
     );
 
+    this.map.fitBounds(this.worldBounds);
     this.initCitySearch();
-    this.retrievePics();
+    this.retrieveAllPics();
   }
 
-  retrievePics(): void {
+  retrieveAllPics(): void {
+    let subscription = this.ratePicService.getAll(this.lastDocToGetNextPage).subscribe((res) => {
+      res.forEach(pic => {
+        if (this.ratePics.map(m => m.id).includes(pic.id)) {
+          return;
+        }
+        this.ratePics.push(pic);
+        this.lastDocToGetNextPage = pic;
+      });
+      this.showDataNotFound = this.ratePics.length == 0;
+      this.displayLoadMoreButton = res.length > 0;
+      subscription.unsubscribe();
+    });
+  }
+
+  filterPics() {
     let placeIds: string[] = [];
     if (this.selectedPlace.place_id) {
       placeIds = [this.selectedPlace.place_id as string];
@@ -115,27 +135,27 @@ export class MapComponent implements OnInit, AfterViewInit {
     }
 
 
-    if (placeIds.length>0 || !this.ratePicService.lastDocInResponseForPaging.id) {
+    if (placeIds.length > 0) {
       this.ratePics = [];
-    }
-    this.ratePicService.getAll(placeIds).subscribe((res) => {
-      res.reduce((acc, val) => acc.concat(val)).forEach(pic => {
-        if (this.ratePics.map(m => m.id).includes(pic.id)) {
-          return;
-        }
-        this.ratePics.push(pic);
-        this.ratePicService.lastDocInResponseForPaging = pic;
+      let subscription = this.ratePicService.filterByPlaceId(placeIds).subscribe((res) => {
+        res.reduce((acc, val) => acc.concat(val)).forEach(pic => {
+          if (this.ratePics.map(m => m.id).includes(pic.id)) {
+            return;
+          }
+          this.ratePics.push(pic);
+        });
+        this.showDataNotFound = this.ratePics.length == 0;
+        subscription.unsubscribe();
       });
-      this.showDataNotFound = this.ratePics.length == 0;
+    }
 
-    });
   }
 
   initCitySearch() {
 
     const options: google.maps.places.AutocompleteOptions = {
       bounds: this.worldBounds,
-      fields: ["address_components", "geometry", "name", "icon"],
+      fields: ["address_components", "geometry", "name", "icon", "formatted_address"],
       strictBounds: false,
       types: ["(regions)"],
     };
@@ -146,64 +166,92 @@ export class MapComponent implements OnInit, AfterViewInit {
 
     autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace();
+      this.selectedCity = place;
       if (!place.geometry || !place.geometry.location) {
         // User entered the name of a Place that was not suggested and
         // pressed the Enter key, or the Place Details request failed.
         //window.alert("No details available for input: '" + place.name + "'");
         return;
       }
-      this.businessSearchField.nativeElement.value = "";
-      this.placeMarkers = [];
-      this.ratePics = [];
-      this.selectedPlace = {};
-      //If the place has a geometry, then present it on a map.
-      if (place.geometry.viewport) {
-        this.map.fitBounds(place.geometry.viewport);
-      } else {
-        this.map.googleMap?.setCenter(place.geometry.location);
-        this.map.googleMap?.setZoom(14);
-      }
-
-      setTimeout(() => {
-        const bounds = this.map.getBounds() as google.maps.LatLngBounds;
-        const sw = bounds.getSouthWest();
-        const ne = bounds.getNorthEast();
-        let picsObs = this.ratePicService.getAllByBounds([sw.lng(), sw.lat()], [ne.lng(), ne.lat()]);
-
-        picsObs.subscribe((res) => {
-          res.reduce((acc, val) => acc.concat(val)).forEach(pic => {
-            if (this.ratePics.map(m => m.id).includes(pic.id)) {
-              return;
-            }
-            this.ratePics.push(pic);
-          });
-
-        });
-
-
-      }, 400);
+      this.searchPlacesInTheCity();
 
 
     });
 
   }
+  searchPlacesInTheCity() {
+    this.searchKeyword = '';
+    this.searchInput=''
+    this.searchField.nativeElement.value = "";
+    this.placeMarkers = [];
+    this.ratePics = [];
+    this.selectedPlace = {};
+    const place = this.selectedCity as google.maps.places.PlaceResult;
+    //If the place has a geometry, then present it on a map.
+    if (place.geometry?.viewport) {
+      this.map.fitBounds(place.geometry.viewport);
+      this.map.googleMap?.addListener
+    } else if (place.geometry?.location) {
+      this.map.googleMap?.setCenter(place.geometry.location);
+      this.map.googleMap?.setZoom(14);
+    }
+
+    let listenerBoundsChangedFinished = this.map.googleMap?.addListener('idle', () => {
+      const bounds = this.map.getBounds() as google.maps.LatLngBounds;
+      const sw = bounds.getSouthWest();
+      const ne = bounds.getNorthEast();
+      let picsObs = this.ratePicService.getAllByBounds([sw.lng(), sw.lat()], [ne.lng(), ne.lat()]);
+
+      this.displayLoadMoreButton = false;
+      let subscription = picsObs.subscribe((res) => {
+        res.reduce((acc, val) => acc.concat(val)).forEach(pic => {
+          if (this.ratePics.map(m => m.id).includes(pic.id)) {
+            return;
+          }
+          this.ratePics.push(pic);
+        });
+        this.showDataNotFound = this.ratePics.length == 0;
+        subscription.unsubscribe();
+      });
+      if (listenerBoundsChangedFinished) {
+        google.maps.event.removeListener(listenerBoundsChangedFinished);
+      }
+    });
+  }
 
   placeSearch() {
-
+    this.searchKeyword=this.searchInput;
     this.selectedPlace = {};
+    this.displayLoadMoreButton=false;
+    if (this.selectedCity) {
+      if (this.selectedCity.geometry?.viewport) {
+        this.map.fitBounds(this.selectedCity.geometry.viewport);
+        this.map.googleMap?.addListener
+      } else if (this.selectedCity.geometry?.location) {
+        this.map.googleMap?.setCenter(this.selectedCity.geometry.location);
+        this.map.googleMap?.setZoom(14);
+      }
+      let listenerBoundsChangedFinished = this.map.googleMap?.addListener('idle', () => {
+        this.placeSearchByKeyword();
+        if (listenerBoundsChangedFinished) {
+          google.maps.event.removeListener(listenerBoundsChangedFinished);
+        }
+      });
+    }
+    else{
+      this.placeSearchByKeyword();
+    }
+  }
+
+  placeSearchByKeyword() {
 
     const service = new google.maps.places.PlacesService(this.map.googleMap as google.maps.Map);
-    console.log('zoom', this.map.getZoom());
-    if ((this.map.getZoom() || 0) < 11) {
-      this.map.googleMap?.setZoom(11);
-    }
-    console.log('bounds', this.map.googleMap?.getBounds());
+
     const request: google.maps.places.PlaceSearchRequest = {
       bounds: this.map.googleMap?.getBounds() || this.worldBounds,
-      name: this.businessSearchField.nativeElement.value,
+      name: this.searchKeyword,
 
     };
-
 
     this.placeMarkers = [];
     let that = this;
@@ -242,7 +290,7 @@ export class MapComponent implements OnInit, AfterViewInit {
           }
 
         });
-        that.retrievePics();
+        that.filterPics();
         that.ref.detectChanges();
       }
       map?.fitBounds(bounds);
@@ -280,7 +328,7 @@ export class MapComponent implements OnInit, AfterViewInit {
 
           this.ratePicService.create(newitem).then(() => {
             this.isUploadCompleted = true;
-            this.retrievePics();
+            this.filterPics()
             setTimeout(() => {
               this.downloadPercentageFixed = -1;
               this.files = [];
@@ -301,7 +349,7 @@ export class MapComponent implements OnInit, AfterViewInit {
     this.downloadPercentageFixed = -1;
     this.files = [];
 
-    this.retrievePics();
+    this.filterPics();
   }
 
   uploadNewPhoto() {
@@ -312,6 +360,11 @@ export class MapComponent implements OnInit, AfterViewInit {
   }
 
   picClicked(pic: RatePic) {
+
+    if (this.selectedPlace.place_id == pic.placeId) {
+      return;
+    }
+
     let that = this;
 
     const service = new google.maps.places.PlacesService(this.map.googleMap as google.maps.Map);
@@ -363,12 +416,46 @@ export class MapComponent implements OnInit, AfterViewInit {
           }, 1500);
 
           that.selectedPlace = place;
-          that.retrievePics();
+          that.filterPics();
           that.ref.detectChanges();
 
         }
       }
     );
 
+  }
+
+
+  removeSelectedCity() {
+    this.selectedCity = null;
+    this.searchKeyword = '';
+    this.searchInput='';
+    this.map.fitBounds(this.worldBounds);
+    let listenerBoundsChangedFinished = this.map.googleMap?.addListener('idle', () => {
+      this.ratePics = [];
+      this.lastDocToGetNextPage = null;
+      this.retrieveAllPics();
+      if (listenerBoundsChangedFinished) {
+        google.maps.event.removeListener(listenerBoundsChangedFinished);
+      }
+    });
+  }
+  removeSelectedKeyword() {
+    this.searchKeyword = '';
+    this.searchInput='';
+    if (this.selectedCity) {
+      this.searchPlacesInTheCity();
+    }
+    else {
+      this.map.fitBounds(this.worldBounds);
+      let listenerBoundsChangedFinished = this.map.googleMap?.addListener('idle', () => {
+        this.ratePics = [];
+        this.lastDocToGetNextPage = null;
+        this.retrieveAllPics();
+        if (listenerBoundsChangedFinished) {
+          google.maps.event.removeListener(listenerBoundsChangedFinished);
+        }
+      });
+    }
   }
 }

@@ -14,7 +14,7 @@
 .photos-container {
     width: 225px;
     background-color: rgba(255, 255, 255, 0.4);
-    height: calc(100vh - 170px);
+    height: calc(100vh - 210px);
     overflow: auto;
     overflow-x: hidden;
 }
@@ -36,7 +36,12 @@
     .photos-container {
         width: 120px;
     }
+
     .pic-img {
         width: 105px;
     }
+}
+
+.p-button.p-button-sm {
+    padding: 0.1rem 0.2rem;
 }

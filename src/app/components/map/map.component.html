@@ -8,17 +8,30 @@
 </div>
 <div style="display: none;">
     <div #mapSearchFieldContainer>
-        <span class="p-input-icon-left mt-2 ml-2">
-            <i class="pi pi-search"></i>
-            <input #mapSearchField type="text" pInputText placeholder="Search City" />
-        </span>
-        <br>
-        <form (ngSubmit)="placeSearch()">
-            <span class="p-input-icon-left mt-2 ml-2">
+        <div class="pt-1 ml-2" style="height: 60px;">
+            <span class="p-input-icon-left">
                 <i class="pi pi-search"></i>
-                <input #businessSearchField type="text" pInputText placeholder="Search Business" />
-
+                <input #mapSearchField type="text" pInputText placeholder="Search City" />
             </span>
+
+            <div class="flex  justify-content-center">
+                <p-button *ngIf="selectedCity && selectedCity.formatted_address" (onClick)="removeSelectedCity()"
+                    [label]="selectedCity.formatted_address" icon="pi pi-times"
+                    styleClass="p-button-sm p-button-secondary btn-search"></p-button>
+            </div>
+        </div>
+        <br>
+        <form (ngSubmit)="placeSearch()" style="height: 60px;">
+            <span class="p-input-icon-left ml-2">
+                <i class="pi pi-search"></i>
+                <input type="text" name="searchInput" [(ngModel)]="searchInput" pInputText
+                    placeholder="Search Business" />
+            </span>
+            <div class="flex  justify-content-center">
+                <p-button *ngIf=" searchKeyword!='' " (onClick)="removeSelectedKeyword()"
+                    [label]="searchKeyword" icon="pi pi-times"
+                    styleClass="p-button-sm p-button-secondary btn-search"></p-button>
+            </div>
         </form>
     </div>
     <div #picsListContainer>
@@ -45,10 +58,11 @@
                 </p-image>
             </div>
 
-            <div class="flex justify-content-center">
-                <button pButton pRipple type="button" (click)="retrievePics()" label="Load More" class="p-button-outlined p-button-secondary"></button>
+            <div *ngIf="displayLoadMoreButton" class="flex justify-content-center">
+                <button pButton pRipple type="button" (click)="retrieveAllPics()" label="Load More"
+                    class="p-button-outlined p-button-secondary"></button>
             </div>
-            
+
             <div *ngIf="showDataNotFound">
                 <h6 class="ml-2 mt-5">No Images Found!</h6>
             </div>

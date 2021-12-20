@@ -22,6 +22,7 @@ import {firebase, firebaseui, FirebaseUIModule} from 'firebaseui-angular';
 import {AngularFireAuthModule} from '@angular/fire/auth';
 import { NgxDropzoneModule } from 'ngx-dropzone';
 import {GalleriaModule} from 'primeng/galleria';
+import { TagModule } from 'primeng/tag';
 
 
 const firebaseUiAuthConfig: firebaseui.auth.Config = {
@@ -59,7 +60,8 @@ const firebaseUiAuthConfig: firebaseui.auth.Config = {
     FirebaseUIModule.forRoot(firebaseUiAuthConfig),
     NgxDropzoneModule,
     GalleriaModule,
-    ButtonModule
+    ButtonModule,
+    TagModule
   ],
   providers: [],
   bootstrap: [AppComponent]

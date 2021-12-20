@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { AngularFirestore, AngularFirestoreCollection, DocumentChangeAction } from '@angular/fire/firestore';
+import firebase from 'firebase'
+import { AngularFirestore, AngularFirestoreCollection } from '@angular/fire/firestore';
 import RatePic from '../models/ratepic.model';
 import { AngularFireAuth } from '@angular/fire/auth';
 import * as geofire from "geofire-common";
@@ -15,52 +16,39 @@ export class RatePicService {
   userId: string = '';
 
   ratePicRef: AngularFirestoreCollection<RatePic>;
-  lastDocInResponseForPaging: RatePic;
 
   constructor(private db: AngularFirestore, private afAuth: AngularFireAuth) {
     this.ratePicRef = db.collection(this.dbPath);
-    this.lastDocInResponseForPaging = {};
     this.afAuth.authState.subscribe(user => {
       if (user) this.userId = user.uid;
     });
   }
 
-  getAll(placeIds: string[] = []): Observable<RatePic[][]> {
+  getAll(lastDocToGetNextPage: RatePic | null): Observable<RatePic[]> {
+    return this.db.collection<RatePic>(this.dbPath, ref => {
+      let query=ref
+      .limit(3)
+      .orderBy('createdDateTime', 'desc')
+      .orderBy('id') //for paging accuracy;
+      if (lastDocToGetNextPage) {
+        query=query.startAfter(lastDocToGetNextPage.createdDateTime, lastDocToGetNextPage.id)
+      };
+      return query;
+    }).valueChanges();
+  }
+
+  filterByPlaceId(placeIds: string[] = []): Observable<RatePic[][]> {
 
     const observables: Observable<RatePic[]>[] = [];
 
-    if (placeIds.length > 0) {
-      while (placeIds.length) {
-        // firestore limits batches to 10
-        const batch = placeIds.splice(0, 10);
-        const collection: AngularFirestoreCollection<RatePic> = this.db.collection(this.dbPath, ref => ref
-          .where('placeId', 'in', batch)
-          .orderBy('createdDateTime', 'desc')
-        );
-        observables.push(collection.valueChanges())
-      }
-    }
-    else {
-      if (this.lastDocInResponseForPaging.id) {
-        //next page
-        console.log('next page', this.lastDocInResponseForPaging);
-        const collection: AngularFirestoreCollection<RatePic> = this.db.collection(this.dbPath, ref => ref
-          .limit(3)
-          .orderBy('createdDateTime', 'desc')
-          .orderBy('id') //for paging accuracy
-          .startAfter(this.lastDocInResponseForPaging.createdDateTime, this.lastDocInResponseForPaging.id)
-        );
-        observables.push(collection.valueChanges())
-      }
-      else {
-        //first page
-        const collection: AngularFirestoreCollection<RatePic> = this.db.collection(this.dbPath, ref => ref
-          .limit(3)
-          .orderBy('createdDateTime', 'desc')
-          .orderBy('id') //for paging accuracy
-        );
-        observables.push(collection.valueChanges())
-      }
+    while (placeIds.length) {
+      // firestore limits batches to 10
+      const batch = placeIds.splice(0, 10);
+      const collection: AngularFirestoreCollection<RatePic> = this.db.collection(this.dbPath, ref => ref
+        .where('placeId', 'in', batch)
+        .orderBy('createdDateTime', 'desc')
+      );
+      observables.push(collection.valueChanges())
     }
     return combineLatest(observables);
   }
@@ -76,7 +64,6 @@ export class RatePicService {
 
     const observables: Observable<RatePic[]>[] = [];
     for (const b of bounds) {
-      console.log(b);
       const collection: AngularFirestoreCollection<RatePic> = this.db.collection(this.dbPath, ref => ref
         .orderBy('geoHash')
         .orderBy('createdDateTime', 'desc')
