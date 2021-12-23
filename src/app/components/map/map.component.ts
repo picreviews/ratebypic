@@ -6,10 +6,16 @@ import { finalize, map, mergeAll } from 'rxjs/operators';
 import RatePic from 'src/app/models/ratepic.model';
 import { RatePicService } from 'src/app/services/ratepic.service';
 import { AngularFireAuth } from '@angular/fire/auth';
+import { environment } from '../../../environments/environment';
+import { MessageService } from 'primeng/api';
 
 interface PlaceMarker {
   place: google.maps.places.PlaceResult;
   marker: MapMarker;
+}
+interface ImageDimentions {
+  width: number;
+  height: number;
 }
 
 @Component({
@@ -20,12 +26,32 @@ interface PlaceMarker {
   //changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MapComponent implements OnInit, AfterViewInit {
+  maxImageSizeBytes: number;
+  imageDimentions: ImageDimentions;
+  picsCountByUser: number;
+  constructor(private afStorage: AngularFireStorage,
+    private ref: ChangeDetectorRef,
+    private ratePicService: RatePicService,
+    private afAuth: AngularFireAuth,
+    private messageService: MessageService) {
 
-  constructor(private afStorage: AngularFireStorage, private ref: ChangeDetectorRef, private ratePicService: RatePicService, private afAuth: AngularFireAuth) {
+    this.picsCountByUser = 0;
+
     this.afAuth.authState.subscribe(user => {
-      if (user) this.isLoogedIn = true;
-      else this.isLoogedIn = false;
+      if (user) {
+        this.isLoogedIn = true;
+        this.ratePicService.counterRef.snapshotChanges().pipe(
+          map(action => {
+            const count = action.payload.data()?.count as number;
+            return count;
+          })).subscribe(data => {
+            this.picsCountByUser = data;
+            console.log(this.picsCountByUser)
+          });
+      } else this.isLoogedIn = false;
     });
+    this.maxImageSizeBytes = (environment.imageSizeMb || 5) * 1024 * 1024;
+    this.imageDimentions = environment.imageDimentions || { width: 8192, height: 8192 };
   }
 
   @ViewChild('mapSearchField') searchField!: ElementRef;
@@ -65,7 +91,6 @@ export class MapComponent implements OnInit, AfterViewInit {
 
   percentage!: Observable<number>;
   snapshot!: Observable<any>;
-  displayGallery: boolean = false;
   files: File[] = [];
   downloadPercentageFixed: number = -1;
   isLoogedIn: boolean = false;
@@ -75,18 +100,19 @@ export class MapComponent implements OnInit, AfterViewInit {
   lastDocToGetNextPage: RatePic | null = null;
   displayLoadMoreButton: boolean = false;
 
+  displayGallery: boolean = false;
   imgGalleryResponsiveOptions: any[] = [
     {
-      breakpoint: '1024px',
+      breakpoint: '1500px',
       numVisible: 5
     },
     {
-      breakpoint: '960px',
-      numVisible: 4
+      breakpoint: '1024px',
+      numVisible: 3
     },
     {
       breakpoint: '768px',
-      numVisible: 3
+      numVisible: 2
     },
     {
       breakpoint: '560px',
@@ -137,6 +163,7 @@ export class MapComponent implements OnInit, AfterViewInit {
 
     if (placeIds.length > 0) {
       this.ratePics = [];
+      this.displayLoadMoreButton = false;
       let subscription = this.ratePicService.filterByPlaceId(placeIds).subscribe((res) => {
         res.reduce((acc, val) => acc.concat(val)).forEach(pic => {
           if (this.ratePics.map(m => m.id).includes(pic.id)) {
@@ -181,7 +208,7 @@ export class MapComponent implements OnInit, AfterViewInit {
   }
   searchPlacesInTheCity() {
     this.searchKeyword = '';
-    this.searchInput=''
+    this.searchInput = ''
     this.searchField.nativeElement.value = "";
     this.placeMarkers = [];
     this.ratePics = [];
@@ -220,9 +247,9 @@ export class MapComponent implements OnInit, AfterViewInit {
   }
 
   placeSearch() {
-    this.searchKeyword=this.searchInput;
+    this.searchKeyword = this.searchInput;
     this.selectedPlace = {};
-    this.displayLoadMoreButton=false;
+    this.displayLoadMoreButton = false;
     if (this.selectedCity) {
       if (this.selectedCity.geometry?.viewport) {
         this.map.fitBounds(this.selectedCity.geometry.viewport);
@@ -232,18 +259,18 @@ export class MapComponent implements OnInit, AfterViewInit {
         this.map.googleMap?.setZoom(14);
       }
       let listenerBoundsChangedFinished = this.map.googleMap?.addListener('idle', () => {
-        this.placeSearchByKeyword();
         if (listenerBoundsChangedFinished) {
           google.maps.event.removeListener(listenerBoundsChangedFinished);
         }
+        this.placeNearBySearchByKeyword();
       });
     }
-    else{
-      this.placeSearchByKeyword();
+    else {
+      this.placeNearBySearchByKeyword();
     }
   }
 
-  placeSearchByKeyword() {
+  placeNearBySearchByKeyword() {
 
     const service = new google.maps.places.PlacesService(this.map.googleMap as google.maps.Map);
 
@@ -252,7 +279,6 @@ export class MapComponent implements OnInit, AfterViewInit {
       name: this.searchKeyword,
 
     };
-
     this.placeMarkers = [];
     let that = this;
     let map = this.map.googleMap;
@@ -291,21 +317,109 @@ export class MapComponent implements OnInit, AfterViewInit {
 
         });
         that.filterPics();
+        map?.fitBounds(bounds);
+      }
+      else {
+        that.placeTextSearch();
+      }
+      that.ref.detectChanges();
+    });
+  }
+
+  placeTextSearch() {
+
+    const service = new google.maps.places.PlacesService(this.map.googleMap as google.maps.Map);
+
+    const request: google.maps.places.TextSearchRequest = {
+      bounds: this.map.googleMap?.getBounds() || this.worldBounds,
+      query: this.searchKeyword,
+
+    };
+    this.placeMarkers = [];
+    let that = this;
+    let map = this.map.googleMap;
+    service.textSearch(request, function (results, status) {
+      const bounds = new google.maps.LatLngBounds();
+
+      if (status === google.maps.places.PlacesServiceStatus.OK) {
+        (results || []).forEach(place => {
+          let newMarker: MapMarker = {
+            position: place.geometry?.location,
+            options: {
+              icon: {
+                url: place.icon as string,
+                size: new google.maps.Size(71, 71),
+                origin: new google.maps.Point(0, 0),
+                anchor: new google.maps.Point(17, 34),
+                scaledSize: new google.maps.Size(25, 25),
+                labelOrigin: new google.maps.Point(17, 35),
+
+              },
+
+            },
+            //label:`${place.name}` ,
+            label: { text: place.name, className: 'marker-labels' } as google.maps.MarkerLabel,
+            title: place.name,
+          } as MapMarker;
+          let newPlaceMarker: PlaceMarker = { place: place, marker: newMarker };
+          that.placeMarkers.push(newPlaceMarker);
+
+          if (place.geometry?.viewport) {
+            // Only geocodes have viewport.
+            bounds.union(place.geometry.viewport);
+          } else {
+            bounds.extend(place.geometry?.location || new google.maps.LatLng(0, 0));
+          }
+
+        });
+        that.filterPics();
+        map?.fitBounds(bounds);
         that.ref.detectChanges();
       }
-      map?.fitBounds(bounds);
     });
   }
 
   onImageUpload(event: any) {
-    // The storage path
+
+    if (this.picsCountByUser >= environment.userPicsLimit) {
+      this.messageService.add({ severity: 'error', summary: 'Upload Limit', detail: 'You reached the upload limit!' });
+      return;
+    }
+
     this.files.push(...event.addedFiles);
     const theFile = this.files[0];
+
+    //check dimentions
+    const reader = new FileReader();
+    reader.readAsDataURL(theFile);
+    reader.onload = () => {
+      const img = new Image();
+      img.src = reader.result as string;
+      img.onload = () => {
+        const height = img.naturalHeight;
+        const width = img.naturalWidth;
+        console.log('Width and Height', width, height);
+        if (height > this.imageDimentions.height || width > this.imageDimentions.width) {
+          this.messageService.add({ severity: 'error', summary: 'Dimension Error', detail: 'Please select a smaller image!' });
+          this.files = [];
+          return;
+        }
+        if (theFile.size > this.maxImageSizeBytes) {
+          this.messageService.add({ severity: 'error', summary: 'Size Error', detail: 'Please select a smaller image!' });
+          this.files = [];
+          return;
+        }
+        this.uploadImageToFirebaseStorage(theFile);
+      };
+    };
+
+  }
+
+  uploadImageToFirebaseStorage(theFile: File) {
     const path = `pics/${Date.now()}_${theFile.name}`;
 
     // Reference to storage bucket
     const ref = this.afStorage.ref(path);
-
     // The main task
     this.task = this.afStorage.upload(path, theFile);
 
@@ -328,16 +442,20 @@ export class MapComponent implements OnInit, AfterViewInit {
 
           this.ratePicService.create(newitem).then(() => {
             this.isUploadCompleted = true;
-            this.filterPics()
+            this.filterPics();
+            this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Your image has been uploaded successfully!' });
             setTimeout(() => {
               this.downloadPercentageFixed = -1;
               this.files = [];
             }, 1000);
+          }).catch(() => {
+            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'An error occured when uploading the image!' });
+            this.downloadPercentageFixed = -1;
+            this.files = [];
           });
         });
       })
     ).subscribe();
-
   }
 
   onUploadRemove(event: any) {
@@ -356,12 +474,12 @@ export class MapComponent implements OnInit, AfterViewInit {
     this.downloadPercentageFixed = -1;
     this.files = [];
     this.isUploadCompleted = false;
-    this.displayGallery = false;
   }
 
   picClicked(pic: RatePic) {
 
     if (this.selectedPlace.place_id == pic.placeId) {
+      this.displayGallery = true;
       return;
     }
 
@@ -429,7 +547,8 @@ export class MapComponent implements OnInit, AfterViewInit {
   removeSelectedCity() {
     this.selectedCity = null;
     this.searchKeyword = '';
-    this.searchInput='';
+    this.searchInput = '';
+    this.selectedPlace = {};
     this.map.fitBounds(this.worldBounds);
     let listenerBoundsChangedFinished = this.map.googleMap?.addListener('idle', () => {
       this.ratePics = [];
@@ -442,7 +561,8 @@ export class MapComponent implements OnInit, AfterViewInit {
   }
   removeSelectedKeyword() {
     this.searchKeyword = '';
-    this.searchInput='';
+    this.searchInput = '';
+    this.selectedPlace = {};
     if (this.selectedCity) {
       this.searchPlacesInTheCity();
     }
@@ -458,4 +578,17 @@ export class MapComponent implements OnInit, AfterViewInit {
       });
     }
   }
+
+  removeSelectedPlace() {
+    this.selectedPlace = {};
+    this.placeMarkers = [];
+    if (this.searchKeyword) {
+      this.ratePics = [];
+      this.placeSearch()
+    }
+    else {
+      this.removeSelectedKeyword();
+    }
+  }
+
 }

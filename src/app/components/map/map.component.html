@@ -36,7 +36,7 @@
     </div>
     <div #picsListContainer>
         <div class="photos-container mt-2 ml-2 p-2">
-            <h5 *ngIf="selectedPlace.name" class="flex  justify-content-center"> {{selectedPlace.name}} </h5>
+            <h5 *ngIf="selectedPlace.name" class="flex  justify-content-center"> {{selectedPlace.name}}  <a  routerLink="" (click)="removeSelectedPlace()" style="color: black; text-decoration: none;"><i class="pi pi-times"></i></a></h5>
             <div *ngIf="selectedPlace.name" class="mb-2">
                 <ngx-dropzone [multiple]="false" accept="image/*" (change)="onImageUpload($event)"
                     [disabled]="!isLoogedIn">
@@ -69,3 +69,15 @@
         </div>
     </div>
 </div>
+
+<p-galleria [value]="ratePics" [(visible)]="displayGallery" [responsiveOptions]="imgGalleryResponsiveOptions" [containerStyle]="{'max-width': '850px'}" [numVisible]="7"
+    [circular]="true" [fullScreen]="true" [showItemNavigators]="true" [showThumbnails]="false" [baseZIndex]="100000">
+    <ng-template pTemplate="item" let-item>
+        <img [src]="item.url" style="width: 100%; display: block;"/>
+    </ng-template>
+    <ng-template pTemplate="thumbnail" let-item>
+        <div class="grid nogutter justify-center">
+            <img [src]="item.url" style="display: block;"/>
+        </div>
+    </ng-template>
+</p-galleria>

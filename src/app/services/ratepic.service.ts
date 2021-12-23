@@ -1,40 +1,45 @@
 import { Injectable } from '@angular/core';
-import firebase from 'firebase'
-import { AngularFirestore, AngularFirestoreCollection } from '@angular/fire/firestore';
+import { AngularFirestore, AngularFirestoreCollection, AngularFirestoreDocument } from '@angular/fire/firestore';
 import RatePic from '../models/ratepic.model';
 import { AngularFireAuth } from '@angular/fire/auth';
 import * as geofire from "geofire-common";
 import * as turf from "@turf/turf";
-import { forkJoin, Observable, zip } from 'rxjs';
+import { Observable, zip } from 'rxjs';
 import { combineLatest } from 'rxjs';
+import { environment } from '../../environments/environment';
+import * as firebase from 'firebase';
 
 @Injectable({
   providedIn: 'root'
 })
 export class RatePicService {
   private dbPath = '/ratepics';
+  private counterDbPath = '/user_pic_counts';
   userId: string = '';
 
   ratePicRef: AngularFirestoreCollection<RatePic>;
+  counterRef!: AngularFirestoreDocument;
 
   constructor(private db: AngularFirestore, private afAuth: AngularFireAuth) {
     this.ratePicRef = db.collection(this.dbPath);
     this.afAuth.authState.subscribe(user => {
-      if (user) this.userId = user.uid;
+      if (user) {
+        this.userId = user.uid;
+        this.counterRef = db.doc(this.counterDbPath + "/" + this.userId);
+      }
     });
   }
 
   getAll(lastDocToGetNextPage: RatePic | null): Observable<RatePic[]> {
     return this.db.collection<RatePic>(this.dbPath, ref => {
-      let query=ref
-      .limit(3)
-      .orderBy('createdDateTime', 'desc')
-      .orderBy('id') //for paging accuracy;
+      let query = ref
+        .limit(environment.picsPageSize || 10)
+        .orderBy('createdDateTime', 'desc')
       if (lastDocToGetNextPage) {
-        query=query.startAfter(lastDocToGetNextPage.createdDateTime, lastDocToGetNextPage.id)
+        query = query.startAfter(lastDocToGetNextPage.createdDateTime)
       };
       return query;
-    }).valueChanges();
+    }).valueChanges({ idField: 'id' })
   }
 
   filterByPlaceId(placeIds: string[] = []): Observable<RatePic[][]> {
@@ -48,7 +53,7 @@ export class RatePicService {
         .where('placeId', 'in', batch)
         .orderBy('createdDateTime', 'desc')
       );
-      observables.push(collection.valueChanges())
+      observables.push(collection.valueChanges({ idField: 'id' }))
     }
     return combineLatest(observables);
   }
@@ -70,7 +75,7 @@ export class RatePicService {
         .startAt(b[0])
         .endAt(b[1])
       );
-      observables.push(collection.valueChanges())
+      observables.push(collection.valueChanges({ idField: 'id' }))
     }
 
     return combineLatest(observables);
@@ -80,6 +85,7 @@ export class RatePicService {
     pic.userId = this.userId;
     pic.createdDateTime = new Date();
     pic.geoHash = geofire.geohashForLocation([pic.lat as number, pic.lng as number]);
+    console.log(pic);
     return this.ratePicRef.add({ ...pic });
   }
 

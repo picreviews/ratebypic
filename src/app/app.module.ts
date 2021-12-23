@@ -22,7 +22,8 @@ import {firebase, firebaseui, FirebaseUIModule} from 'firebaseui-angular';
 import {AngularFireAuthModule} from '@angular/fire/auth';
 import { NgxDropzoneModule } from 'ngx-dropzone';
 import {GalleriaModule} from 'primeng/galleria';
-import { TagModule } from 'primeng/tag';
+import { ToastModule } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 
 
 const firebaseUiAuthConfig: firebaseui.auth.Config = {
@@ -61,9 +62,11 @@ const firebaseUiAuthConfig: firebaseui.auth.Config = {
     NgxDropzoneModule,
     GalleriaModule,
     ButtonModule,
-    TagModule
+    ToastModule
   ],
-  providers: [],
+  providers: [
+    MessageService
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

@@ -1,4 +1,47 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "ratepics",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "createdDateTime",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "ratepics",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "geoHash",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdDateTime",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "ratepics",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "placeId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdDateTime",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }
