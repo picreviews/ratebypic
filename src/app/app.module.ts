@@ -24,6 +24,8 @@ import { NgxDropzoneModule } from 'ngx-dropzone';
 import {GalleriaModule} from 'primeng/galleria';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import { AboutComponent } from './components/about/about.component';
+import {TabViewModule} from 'primeng/tabview';
 
 
 const firebaseUiAuthConfig: firebaseui.auth.Config = {
@@ -42,7 +44,8 @@ const firebaseUiAuthConfig: firebaseui.auth.Config = {
 @NgModule({
   declarations: [
     AppComponent,
-    MapComponent
+    MapComponent,
+    AboutComponent
   ],
   imports: [
     BrowserModule,
@@ -62,7 +65,8 @@ const firebaseUiAuthConfig: firebaseui.auth.Config = {
     NgxDropzoneModule,
     GalleriaModule,
     ButtonModule,
-    ToastModule
+    ToastModule,
+    TabViewModule
   ],
   providers: [
     MessageService
